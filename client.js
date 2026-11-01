@@ -1,5 +1,5 @@
 /**
- * Browser half: one Settings switch plus a chat-scoped DOM observer.
+ * Browser half: a chat-scoped DOM observer that runs whenever the plugin is on.
  *
  * This is intentionally a userland workaround. DSH's Chat package owns the
  * process-group disclosure state, so the only public seam for this behaviour
@@ -11,117 +11,9 @@ window.__ModuleLoader__.load({
   factory(require) {
     const React = require('react');
     const h = React.createElement;
-    const NS = 'dshAutoWorkDetails';
+
+    /** Preference key written by versions that still shipped a Settings switch. */
     const STORAGE_KEY = 'dsh-auto-work-details.enabled';
-
-    const translations = {
-      en: {
-        title: 'Expand process, collapse when done',
-        description: 'While a work segment runs, keep its group open at the standard height and follow the bottom. Collapse that group when the segment ends. Applies to modes that render group headers.',
-        switchLabel: 'Expand process, collapse when done',
-      },
-      zh: {
-        title: '展开过程，完成后收起',
-        description: '工作段运行期间，将过程组展开到标准高度并跟随底部；这一段结束后自动收起该组。仅对显示过程组头的模式生效。',
-        switchLabel: '展开过程，完成后收起',
-      },
-    };
-
-    const CSS = `
-      .dawd-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 16px 0;
-        border-bottom: 0.5px solid var(--dsw-alias-border-l2);
-      }
-      .dawd-row-text {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        padding-right: 48px;
-      }
-      .dawd-title {
-        font-size: 14px;
-        font-weight: 400;
-        line-height: 22px;
-        color: var(--dsw-alias-label-primary);
-      }
-      .dawd-desc {
-        font-size: 12px;
-        font-weight: 400;
-        line-height: 18px;
-        color: var(--dsw-alias-label-tertiary);
-      }
-      .dawd-switch {
-        box-sizing: border-box;
-        position: relative;
-        flex: 0 0 auto;
-        width: 36px;
-        height: 20px;
-        padding: 2px;
-        border: 0;
-        border-radius: 999px;
-        corner-shape: round;
-        background: var(--dsw-alias-border-l3);
-        cursor: pointer;
-      }
-      .dawd-switch[aria-checked='true'] {
-        background: var(--dsw-alias-brand-primary);
-      }
-      .dawd-switch:focus-visible {
-        outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
-        outline-offset: 2px;
-      }
-      .dawd-thumb {
-        display: block;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        corner-shape: round;
-        background: var(--dsw-alias-label-primary-foreground);
-        transition: transform 120ms ease;
-      }
-      .dawd-switch[aria-checked='false'] .dawd-thumb {
-        background: var(--dsw-alias-switch-thumb);
-      }
-      .dawd-switch[aria-checked='true'] .dawd-thumb {
-        transform: translateX(16px);
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .dawd-thumb { transition: none; }
-      }
-    `;
-
-    function readEnabled() {
-      try {
-        return window.localStorage.getItem(STORAGE_KEY) !== '0';
-      } catch {
-        return true;
-      }
-    }
-
-    // The module is shared by the Settings row and every mounted composer, so
-    // one small external store keeps the switch live without a Host round-trip.
-    let enabled = true;
-    const listeners = new Set();
-    const subscribeEnabled = (listener) => {
-      listeners.add(listener);
-      return () => { listeners.delete(listener); };
-    };
-    const getEnabled = () => enabled;
-    function publishEnabled(next) {
-      if (enabled === next) return;
-      enabled = next;
-      try {
-        window.localStorage.setItem(STORAGE_KEY, next ? '1' : '0');
-      } catch {
-        // A locked-down browser still gets the in-memory preference for this page.
-      }
-      for (const listener of [...listeners]) listener();
-    }
 
     /**
      * Find the conversation that owns this composer. Each pane has its own
@@ -162,12 +54,11 @@ window.__ModuleLoader__.load({
      * not fought because the state machine only reacts to phase transitions.
      */
     function AutoWorkDetailsObserver(props) {
-      const on = React.useSyncExternalStore(subscribeEnabled, getEnabled, getEnabled);
       const sessionId = props.sessionId;
       const hostRef = React.useRef(null);
 
       React.useEffect(() => {
-        if (!on || sessionId === undefined) return;
+        if (sessionId === undefined) return;
         const host = hostRef.current;
         if (host === null) return;
         const doc = host.ownerDocument;
@@ -238,7 +129,7 @@ window.__ModuleLoader__.load({
           doc.removeEventListener('visibilitychange', onVisible);
           if (frame !== 0) win.cancelAnimationFrame(frame);
         };
-      }, [on, sessionId]);
+      }, [sessionId]);
 
       return h('div', {
         ref: hostRef,
@@ -248,55 +139,16 @@ window.__ModuleLoader__.load({
       });
     }
 
-    function createRow(ctx) {
-      const subscribeLocale = (listener) => ctx.locale.subscribe(listener);
-      const getLocale = () => ctx.locale.getSnapshot();
-      function AutoWorkDetailsRow() {
-        React.useSyncExternalStore(subscribeLocale, getLocale, getLocale);
-        const on = React.useSyncExternalStore(subscribeEnabled, getEnabled, getEnabled);
-        const t = ctx.locale.bind(NS);
-        return h('div', { className: 'dawd-row' },
-          h('div', { className: 'dawd-row-text' },
-            h('div', { className: 'dawd-title' }, t('title')),
-            h('div', { className: 'dawd-desc' }, t('description'))),
-          h('button', {
-            type: 'button',
-            role: 'switch',
-            className: 'dawd-switch',
-            'aria-checked': on,
-            'aria-label': t('switchLabel'),
-            onClick: () => { publishEnabled(!on); },
-          }, h('span', { className: 'dawd-thumb' })));
-      }
-      return AutoWorkDetailsRow;
-    }
-
     function apply(ctx) {
-      enabled = readEnabled();
+      // The Settings switch is gone, so the behaviour is always on. Drop the
+      // preference earlier versions stored, or a page that still has "0" there
+      // would keep looking configurable after the upgrade.
+      try {
+        window.localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // A locked-down browser simply keeps the stale key; it is never read.
+      }
 
-      ctx.effect(() => ctx.locale.register(NS, translations), 'dsh-auto-work-details: locales');
-      ctx.effect(() => {
-        const style = document.createElement('style');
-        style.dataset.dshAutoWorkDetails = 'true';
-        style.textContent = CSS;
-        document.head.appendChild(style);
-        return () => { style.remove(); };
-      }, 'dsh-auto-work-details: styles');
-      ctx.effect(() => {
-        const onStorage = (event) => {
-          if (event.key !== STORAGE_KEY) return;
-          enabled = readEnabled();
-          for (const listener of [...listeners]) listener();
-        };
-        window.addEventListener('storage', onStorage);
-        return () => { window.removeEventListener('storage', onStorage); };
-      }, 'dsh-auto-work-details: storage');
-      ctx.effect(() => ctx.slots.inject('settings.general.item', () => ctx.slots.register({
-        name: 'settings.general.item',
-        id: 'auto-work-details',
-        order: 13,
-        locale: NS,
-      }, createRow(ctx))), 'dsh-auto-work-details: settings row');
       ctx.effect(() => ctx.slots.inject('conversation.composer.dock', () => ctx.slots.register({
         name: 'conversation.composer.dock',
         id: 'auto-work-details',
@@ -304,6 +156,6 @@ window.__ModuleLoader__.load({
       }, AutoWorkDetailsObserver)), 'dsh-auto-work-details: chat observer');
     }
 
-    return { inject: ['slots', 'locale'], apply };
+    return { inject: ['slots'], apply };
   },
 });

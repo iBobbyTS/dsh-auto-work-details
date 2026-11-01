@@ -1,16 +1,17 @@
 # DSH Auto Work Details
 
-A small browser-side DSH plugin that adds a **展开过程，完成后收起** switch to Settings → General, directly below **工作步骤展示**.
+A small browser-side DSH plugin that expands a running work-detail group at the standard height and folds that group when its segment finishes.
 
 ## Behaviour
 
+- Always on while the bundle is enabled; the plugin has no Settings entry.
 - Only the conversation that owns the current composer is observed. Switching chats disposes the old observer and installs a new one for the active session; leaving Chat unmounts it.
 - While a process group is running (`[data-shimmer]` is present on its header), a collapsed group is opened once through the native header click. That path uses Chat's own `initialize('bottom')` and follow logic, so the standard height cap and bottom-following are preserved.
 - When the group stops running, the group is closed once through the same native control.
 - Manual toggles during the same running segment are not fought: the observer reacts only to the transition into and out of the running phase.
 - The synthetic click suppresses the header's `focus()` call, so opening a group does not steal the caret from the composer.
 
-The preference is stored in `localStorage` as `dsh-auto-work-details.enabled` and defaults to on.
+Earlier versions exposed a switch that stored `dsh-auto-work-details.enabled` in `localStorage`; the plugin now removes that leftover key when it loads.
 
 ## Limits
 
@@ -20,8 +21,6 @@ This is a DOM-level workaround, not a Chat extension point:
 - It only works in modes that render a process-group header (Standard and Compact); Detailed and Verbose have no running group header to toggle.
 - An auto-close is skipped when Chat's focus protection decides the group must stay visible, or when a whole-Turn fold is already animating that group.
 - A future Chat update can change these markers without notice.
-
-The switch defaults to on. Turning it off leaves already-open groups as they are.
 
 ## Install
 
