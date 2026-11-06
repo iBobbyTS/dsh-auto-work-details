@@ -17,7 +17,7 @@ Earlier versions exposed a switch that stored `dsh-auto-work-details.enabled` in
 
 This is a DOM-level workaround, not a Chat extension point:
 
-- It depends on Chat's internal `[data-step-process]`, `[data-chat-group-key]`, `[data-shimmer]`, and `aria-expanded` markers.
+- It depends on Conversation's `[data-conversation-content]` / `[data-conversation-session]` scope and Chat's `[data-step-process]`, `[data-chat-group-key]`, `[data-shimmer]`, and `aria-expanded` markers. An unresolved or mismatched Conversation is left alone.
 - It only works in modes that render a process-group header (Standard and Compact); Detailed and Verbose have no running group header to toggle.
 - An auto-close is skipped when Chat's focus protection decides the group must stay visible, or when a whole-Turn fold is already animating that group.
 - A future Chat update can change these markers without notice.
@@ -31,3 +31,9 @@ dsh plugin --profile web add link:/Users/ibobby/Projects/dsh-plugin/dsh-auto-wor
 ```
 
 `dsh plugin ... add` links the package and also records `@local/dsh-auto-work-details` in the profile's `dsh.profile.bundles`; installing through the Plugin Manager performs the same steps.
+
+## Verify
+
+```sh
+node --test test/*.test.mjs
+```

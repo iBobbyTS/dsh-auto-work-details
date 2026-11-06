@@ -16,13 +16,13 @@ window.__ModuleLoader__.load({
     const STORAGE_KEY = 'dsh-auto-work-details.enabled';
 
     /**
-     * Find the conversation that owns this composer. Each pane has its own
-     * main.conversation slot, so the observer never reaches into another chat.
+     * Bind the observer to its exact Conversation occurrence, including an
+     * embedded child chat. Never enlarge an unresolved scope to the page.
      */
-    function findConversationScope(host) {
-      return host.closest('[data-slot="main.conversation"]')
-        ?? host.closest('[data-chat-flow]')
-        ?? host.ownerDocument.body;
+    function findConversationScope(host, sessionId) {
+      const scope = host.closest('[data-conversation-content]');
+      return scope !== null && scope.getAttribute('data-conversation-session') === sessionId
+        ? scope : null;
     }
 
     function isRendered(element) {
@@ -63,7 +63,8 @@ window.__ModuleLoader__.load({
         if (host === null) return;
         const doc = host.ownerDocument;
         const win = doc.defaultView;
-        const scope = findConversationScope(host);
+        const scope = findConversationScope(host, sessionId);
+        if (scope === null) return;
         const phases = new Map();
         let frame = 0;
         let stopped = false;
@@ -72,6 +73,7 @@ window.__ModuleLoader__.load({
           if (stopped) return;
           const alive = new Set();
           for (const group of scope.querySelectorAll('[data-step-process]')) {
+            if (group.closest('[data-conversation-content]') !== scope) continue;
             if (!isRendered(group)) continue;
             // A whole-Turn fold owns the visibility animation; do not race it.
             if (group.closest('[data-chat-motion="collapse"]') !== null) continue;
