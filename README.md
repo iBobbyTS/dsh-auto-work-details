@@ -2,6 +2,10 @@
 
 A small browser-side DSH plugin that expands a running work-detail group at the standard height and folds that group when its segment finishes.
 
+## Compatibility
+
+Verified: DSH 0.2.2-rc.1 (source review and automated checks); Desktop testing has not been completed.
+
 ## Behaviour
 
 - Always on while the bundle is enabled; the plugin has no Settings entry.
