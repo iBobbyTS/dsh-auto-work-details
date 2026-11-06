@@ -5,7 +5,7 @@ A small browser-side DSH plugin that expands a running work-detail group at the 
 ## Behaviour
 
 - Always on while the bundle is enabled; the plugin has no Settings entry.
-- Only the conversation that owns the current composer is observed. Switching chats disposes the old observer and installs a new one for the active session; leaving Chat unmounts it.
+- Each composer observes only its own Conversation, including an embedded child chat. Switching its session or unmounting it disposes that observer.
 - While a process group is running (`[data-shimmer]` is present on its header), a collapsed group is opened once through the native header click. That path uses Chat's own `initialize('bottom')` and follow logic, so the standard height cap and bottom-following are preserved.
 - When the group stops running, the group is closed once through the same native control.
 - Manual toggles during the same running segment are not fought: the observer reacts only to the transition into and out of the running phase.
@@ -24,11 +24,13 @@ This is a DOM-level workaround, not a Chat extension point:
 
 ## Install
 
-Install the directory as a DSH bundle into the target profile, for example:
+Clone this fork (`iBobbyTS/dsh-auto-work-details`) and install its checkout as a DSH bundle. Replace the path and choose the profile you actually use:
 
 ```sh
-dsh plugin --profile web add link:/Users/ibobby/Projects/dsh-plugin/dsh-auto-work-details
+dsh plugin --profile web add link:/absolute/path/to/dsh-auto-work-details
 ```
+
+For Desktop, use its bundled CLI with `--profile desktop`, after launching Desktop once and quitting it. Restart the target Host and refresh its client after installing.
 
 `dsh plugin ... add` links the package and also records `@local/dsh-auto-work-details` in the profile's `dsh.profile.bundles`; installing through the Plugin Manager performs the same steps.
 
