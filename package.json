@@ -4,21 +4,21 @@
   "private": true,
   "type": "module",
   "description": "Expand running work-detail groups, then fold each group when its segment finishes.",
-  "main": "index.js",
+  "main": "lib/index.js",
   "exports": {
-    ".": "./index.js",
-    "./client": "./client.js",
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
   },
   "files": [
-    "index.js",
-    "client.js",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
-    "README.md"
+    "README.md",
+    "lib",
+    "src"
   ],
   "dsh": {
     "bundle": {
@@ -31,5 +31,23 @@
         "@deepseek-ai/dsh-client-ui-conversation"
       ]
     }
+  },
+  "packageManager": "pnpm@10.28.2",
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "tsdown": "0.22.14",
+    "@types/node": "22.20.5",
+    "@types/react": "18.3.31",
+    "react": "18.3.1"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.host.json && tsc -p tsconfig.client.json",
+    "build:runtime": "node scripts/build-runtime.mjs",
+    "test": "node scripts/check.mjs test",
+    "check:dist": "node scripts/check.mjs dist",
+    "check": "node scripts/check.mjs all"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1"
   }
 }

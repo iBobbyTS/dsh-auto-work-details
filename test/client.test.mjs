@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const source = readFileSync(new URL('../client.js', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../lib/client.js', import.meta.url), 'utf8');
 
 function conversation(id) {
   const root = {
